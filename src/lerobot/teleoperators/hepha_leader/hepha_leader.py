@@ -107,7 +107,8 @@ class HephaLeader(Teleoperator):
                 structure should match :pymeth:`observation_features`.
         """
         start = time.perf_counter()
-        action = {"motor_0": random.uniform(0, 96), "motor_1": random.uniform(0, 96)}
+        action = {"motor_0": int(random.uniform(0, 680)), "motor_1": int(random.uniform(0, 680))}
+
         dt_ms = (time.perf_counter() - start) * 1e3
         logger.debug(f"{self} read action: {dt_ms:.1f}ms")
         return action

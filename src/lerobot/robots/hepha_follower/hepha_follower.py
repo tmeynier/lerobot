@@ -22,6 +22,7 @@ from ..robot import Robot
 from .config_hepha_follower import HephaFollowerConfig
 import gym_pusht  # This registers the environment
 import gymnasium as gym
+import cv2
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +35,12 @@ class HephaFollower(Robot):
     config_class = HephaFollowerConfig
     name = "hepha_follower"
 
-    def __init__(self, config: HephaFollowerConfig):
+    def __init__(self, config: HephaFollowerConfig, show_camera: bool = True):
         super().__init__(config)
-        self.env = gym.make("gym_pusht/PushT-v0", obs_type="pixels_agent_pos", render_mode="rgb_array") # or render_mode=rgb_array
+        self.env = gym.make("gym_pusht/PushT-v0", obs_type="pixels_agent_pos", render_mode="rgb_array")
         self.env.reset()
         self.cameras = ["cam"]
+        self.show_camera = show_camera
 
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
@@ -109,17 +111,28 @@ class HephaFollower(Robot):
         Retrieve the current observation from the robot.
 
         Returns:
-            dict[str, Any]: A flat dictionary representing the robot's current sensory state. Its structure
-                should match :pymeth:`observation_features`.
+            dict[str, Any]: A flat dictionary representing the robot's current sensory state.
         """
         start = time.perf_counter()
         obs = self.env.get_obs()
         dt_ms = (time.perf_counter() - start) * 1e3
         logger.debug(f"{self} read state and camera: {dt_ms:.1f}ms")
 
-        return {"motor_0": obs["agent_pos"][0],
-                 "motor_1": obs["agent_pos"][0],
-                 "cam": obs["pixels"]}
+        frame = obs["pixels"]
+
+        # OpenCV expects BGR, but gym uses RGB, so convert:
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        # Display the image
+        if self.show_camera:
+            cv2.imshow("HephaFollower Camera", frame_bgr)
+            cv2.waitKey(1)
+
+        return {
+            "motor_0": obs["agent_pos"][0],
+            "motor_1": obs["agent_pos"][0],
+            "cam": obs["pixels"],
+        }
 
     def send_action(self, action: dict[str, Any]) -> dict[str, Any]:
         """
@@ -140,3 +153,5 @@ class HephaFollower(Robot):
     def disconnect(self) -> None:
         """Disconnect from the robot and perform any necessary cleanup."""
         self.env.close()
+        cv2.destroyAllWindows()  # Close OpenCV windows
+
