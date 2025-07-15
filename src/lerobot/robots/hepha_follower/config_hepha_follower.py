@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
-
 from ..config import RobotConfig
+from dataclasses import dataclass
 
 
 @RobotConfig.register_subclass("hepha_follower")
 @dataclass
 class HephaFollowerConfig(RobotConfig):
-    pass
+    show_camera = True
+    auto_controller = "pusht_auto_controller"
