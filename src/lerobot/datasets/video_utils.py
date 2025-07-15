@@ -27,6 +27,7 @@ import torch
 import torchvision
 from datasets.features.features import register_feature
 from PIL import Image
+import os
 
 
 def get_safe_default_codec():
@@ -190,8 +191,20 @@ def decode_video_frames_torchcodec(
     else:
         raise ImportError("torchcodec is required but not available.")
 
-    # initialize video decoder
-    decoder = VideoDecoder(video_path, device=device, seek_mode="approximate")
+
+    # TODO: @Tristan changed the code below
+    video_path = str(video_path)  # Ensure it's a string path
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"Video file not found: {video_path}")
+
+    try:
+        # initialize video decoder
+        decoder = VideoDecoder(video_path, device=device, seek_mode="approximate")
+    except ValueError as e:
+        logging.warning(f"Skipping file '{video_path}': {e}")
+        return torch.empty(0)  # or raise if critical
+
+
     loaded_frames = []
     loaded_ts = []
     # get metadata for frame information
