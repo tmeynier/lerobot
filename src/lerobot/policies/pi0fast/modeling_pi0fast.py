@@ -492,7 +492,7 @@ class PI0FAST(nn.Module):
                     params.requires_grad = False
 
     def embed_tokens(self, tokens: torch.Tensor):
-        return self.pi0_paligemma.language_model.model.embed_tokens(tokens)
+        return self.pi0_paligemma.language_model.dot_model.embed_tokens(tokens)
 
     def prepare_inputs_for_generation(self, *args, **kwargs):
         return self.pi0_paligemma.prepare_inputs_for_generation(*args, **kwargs)

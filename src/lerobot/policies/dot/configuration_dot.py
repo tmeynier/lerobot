@@ -1,14 +1,12 @@
 from dataclasses import dataclass, field
 
+from lerobot.configs.types import PolicyFeature, FeatureType, NormalizationMode
 from lerobot.optim.optimizers import AdamWConfig
 from lerobot.optim.schedulers import CosineAnnealingSchedulerConfig
-from lerobot.configs.policies import PreTrainedConfig
-from lerobot.configs.types import NormalizationMode
 
 
-@PreTrainedConfig.register_subclass("dot")
 @dataclass
-class DOTConfig(PreTrainedConfig):
+class DOTConfig:
     """Configuration for DOT (Decision Transformer) policy.
 
     You need to change some parameters in this configuration to make it work for your problem:
@@ -39,6 +37,34 @@ class DOTConfig(PreTrainedConfig):
             "ACTION": NormalizationMode.MIN_MAX,
         }
     )
+
+    # MODIFIED
+    image_features = {"observation.image": "cam_0"}
+    # Define dummy features with .shape attributes
+    input_features = {
+        "observation.image": PolicyFeature(type=FeatureType.VISUAL, shape=(3, 96, 96)),
+        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(2,))
+    }
+    output_features = {
+        "action": PolicyFeature(type=FeatureType.ACTION, shape=(2,)),
+    }
+    # Define dummy features with .shape attributes
+    robot_state_feature = input_features["observation.state"]
+    action_feature = output_features["action"]
+    env_state_feature = None
+    device = "cpu"
+    verbose = False
+    train_validation_split = 0.8
+    batch_size = 24
+    num_workers = 8
+    seed = 0
+    use_amp = False
+    project_name = "pusht"
+    training_steps = 10000
+    grad_clip_norm = 10.0
+
+
+
 
     # Not sure if there is a better way to do this with new config system.
     override_dataset_stats: bool = False
@@ -84,7 +110,6 @@ class DOTConfig(PreTrainedConfig):
     optimizer_weight_decay: float = 1e-5
 
     def __post_init__(self):
-        super().__post_init__()
         if self.predict_every_n > self.inference_horizon:
             raise ValueError(
                 f"predict_every_n ({self.predict_every_n}) must be less than or equal to horizon ({self.inference_horizon})."
@@ -108,7 +133,7 @@ class DOTConfig(PreTrainedConfig):
             weight_decay=self.optimizer_weight_decay,
         )
 
-    def get_scheduler_preset(self) -> None:
+    def get_scheduler_preset(self):
         return CosineAnnealingSchedulerConfig(
             min_lr=self.optimizer_min_lr, T_max=self.optimizer_lr_cycle_steps
         )

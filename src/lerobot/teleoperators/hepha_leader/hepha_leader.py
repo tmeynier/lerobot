@@ -19,7 +19,6 @@ import time
 from ..teleoperator import Teleoperator
 from .config_hepha_leader import HephaLeaderConfig
 from typing import Any
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +106,7 @@ class HephaLeader(Teleoperator):
                 structure should match :pymeth:`observation_features`.
         """
         start = time.perf_counter()
-        action = {"motor_0": int(random.uniform(0, 680)), "motor_1": int(random.uniform(0, 680))}
+        action = {"motor_0": 340, "motor_1": 340}
 
         dt_ms = (time.perf_counter() - start) * 1e3
         logger.debug(f"{self} read action: {dt_ms:.1f}ms")

@@ -177,6 +177,10 @@ def record_loop(
     if dataset is not None and dataset.fps != fps:
         raise ValueError(f"The dataset fps should be equal to requested fps ({dataset.fps} != {fps}).")
 
+    # TODO: This has been modified by @Tristan
+    if isinstance(robot, hepha_follower.HephaFollower):
+        robot.reset()
+
     teleop_arm = teleop_keyboard = None
     if isinstance(teleop, list):
         teleop_keyboard = next((t for t in teleop if isinstance(t, KeyboardTeleop)), None)

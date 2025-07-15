@@ -14,10 +14,17 @@ from torchvision import transforms
 from torchvision.ops.misc import FrozenBatchNorm2d
 from torchvision.transforms.functional import InterpolationMode
 
-from lerobot.constants import OBS_IMAGES, ACTION
 from lerobot.policies.dot.configuration_dot import DOTConfig
-from lerobot.policies.normalize import Normalize, Unnormalize
-from lerobot.policies.pretrained import PreTrainedPolicy
+
+from pathlib import Path
+from typing import Optional, Union
+import tempfile
+import json
+
+from huggingface_hub import HfApi, create_repo, upload_folder
+from safetensors.torch import save_model
+
+from lerobot.policies.normalize import Unnormalize, Normalize
 
 
 class DOT(nn.Module):
@@ -144,7 +151,7 @@ class DOT(nn.Module):
         return self.action_head(decoder_out)
 
 
-class DOTPolicy(PreTrainedPolicy):
+class DOTPolicy(nn.Module):
     name = "dot"
     config_class = DOTConfig
 
@@ -153,7 +160,7 @@ class DOTPolicy(PreTrainedPolicy):
         config: DOTConfig,
         dataset_stats: dict[str, dict[str, Tensor]] | None = None,
     ):
-        super().__init__(config)
+        super().__init__()
         config.validate_features()
         self.config = config
 
@@ -167,7 +174,7 @@ class DOTPolicy(PreTrainedPolicy):
                     dataset_stats[k] = {}
                 for k1, v1 in v.items():
                     dataset_stats[k][k1] = torch.tensor(v1)
-        
+
         self.normalize_inputs = Normalize(config.input_features, config.normalization_mapping, dataset_stats)
         self.normalize_targets = Normalize(
             config.output_features, config.normalization_mapping, dataset_stats
@@ -369,20 +376,89 @@ class DOTPolicy(PreTrainedPolicy):
 
         return policy
 
-    @torch.no_grad()
-    def predict_action_chunk(self, batch: dict[str, Tensor]) -> Tensor:
-        """Predict a chunk of actions given environment observations."""
-        self.eval()
+    def save_pretrained_locally(self, save_directory: Union[str, Path]):
+        """
+        Saves the model weights (as .safetensors) and config to a directory in Hugging Face format.
 
-        batch = self.normalize_inputs(batch)
-        if self.config.image_features:
-            batch = dict(batch)  # shallow copy so that adding a key doesn't modify the original
-            batch[OBS_IMAGES] = [batch[key] for key in self.config.image_features]
+        Args:
+            save_directory (Union[str, Path]): The local directory to save the model and config.
+        """
+        save_directory = Path(save_directory)
+        save_directory.mkdir(parents=True, exist_ok=True)
 
-        actions = self.model(batch)[0]
-        actions = self.unnormalize_outputs({ACTION: actions})[ACTION]
-        return actions
+        # Print the state dict before saving
+        print("\n📦 Saving model state_dict (parameters and buffers):")
+        original_state_dict = self.state_dict()
 
+        # Save model weights as .safetensors
+        model_path = save_directory / "model.safetensors"
+        save_model(self, str(model_path))
+
+        from safetensors.torch import safe_open
+        with safe_open(model_path, framework="pt", device="cpu") as f:
+            state_dict = {k: f.get_tensor(k) for k in f.keys()}
+        print("\n📦 Loading model state_dict (parameters and buffers):")
+        for name_1, tensor_1 in original_state_dict.items():
+            is_name_1_in_state_dict = False
+            for name_2, tensor_2 in state_dict.items():
+                if name_2 == name_1:
+                    is_name_1_in_state_dict = True
+
+            if not is_name_1_in_state_dict:
+                print(f"{name_1:40} | shape: {tuple(tensor_1.shape)} | dtype: {tensor_1.dtype}")
+
+        # Save config as JSON
+        config_path = save_directory / "config.json"
+        config_dict = self.config.to_dict() if hasattr(self.config, "to_dict") else vars(self.config)
+        with open(config_path, "w") as f:
+            json.dump(config_dict, f, indent=2)
+
+        print(f"✅ Model and config saved locally to: {save_directory.resolve()}")
+
+    def save_pretrained_to_hub(
+            self,
+            repo_name: str,
+            organization: Optional[str] = None,
+            private: bool = False,
+            token: Optional[str] = None,
+    ):
+        """
+        Saves model and config locally and uploads them to the Hugging Face Hub.
+
+        Args:
+            repo_name (str): The name of the repository on the Hugging Face Hub.
+            organization (Optional[str]): Optional organization name.
+            private (bool): Whether the repo should be private.
+            token (Optional[str]): Optional Hugging Face token for authentication.
+        """
+        api = HfApi()
+        repo_id = f"{organization}/{repo_name}" if organization else repo_name
+
+        print(f"📁 Preparing to push model to Hub repo: {repo_id}")
+
+        # Create the repo or skip if it exists
+        create_repo(
+            repo_id=repo_id,
+            token=token,
+            private=private,
+            repo_type="model",
+            exist_ok=True,
+        )
+
+        # Save and upload using a temporary directory
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            self.save_pretrained_locally(tmp_path)
+
+            # Upload everything to the repo
+            upload_folder(
+                repo_id=repo_id,
+                folder_path=str(tmp_path),
+                repo_type="model",
+                token=token,
+            )
+
+        print(f"🚀 Successfully pushed to https://huggingface.co/{repo_id}")
 
 class LoRAConv2d(nn.Module):
     def __init__(self, base_conv, rank=4):
