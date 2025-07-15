@@ -29,7 +29,7 @@ from lerobot.constants import OBS_IMAGES, OBS_STATE
 from lerobot.datasets.utils import build_dataset_frame, hw_to_dataset_features
 
 # NOTE: Configs need to be loaded for the client to be able to instantiate the policy config
-from lerobot.policies import ACTConfig, DiffusionConfig, PI0Config, SmolVLAConfig, VQBeTConfig  # noqa: F401
+from lerobot.policies import ACTConfig, DiffusionConfig, PI0Config, SmolVLAConfig, VQBeTConfig, DOTConfig  # noqa: F401
 from lerobot.robots.robot import Robot
 from lerobot.transport import async_inference_pb2
 from lerobot.transport.utils import bytes_buffer_size

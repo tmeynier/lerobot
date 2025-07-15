@@ -14,17 +14,16 @@ from torchvision import transforms
 from torchvision.ops.misc import FrozenBatchNorm2d
 from torchvision.transforms.functional import InterpolationMode
 
+from lerobot.constants import OBS_IMAGES, ACTION
 from lerobot.policies.dot.configuration_dot import DOTConfig
-
 from pathlib import Path
 from typing import Optional, Union
 import tempfile
 import json
-
 from huggingface_hub import HfApi, create_repo, upload_folder
 from safetensors.torch import save_model
-
 from lerobot.policies.normalize import Unnormalize, Normalize
+from lerobot.policies.pretrained import PreTrainedPolicy
 
 
 class DOT(nn.Module):
@@ -151,7 +150,7 @@ class DOT(nn.Module):
         return self.action_head(decoder_out)
 
 
-class DOTPolicy(nn.Module):
+class DOTPolicy(PreTrainedPolicy):
     name = "dot"
     config_class = DOTConfig
 
@@ -160,7 +159,7 @@ class DOTPolicy(nn.Module):
         config: DOTConfig,
         dataset_stats: dict[str, dict[str, Tensor]] | None = None,
     ):
-        super().__init__()
+        super().__init__(config)
         config.validate_features()
         self.config = config
 
@@ -311,7 +310,7 @@ class DOTPolicy(nn.Module):
 
         return action
 
-    def forward(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
+    def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, dict]:
         lookback_ind = torch.randint(0, 2 * self.config.lookback_aug + 1, (1,)).item()
         for k in list(self.model.obs_mapping.values()) + list(self.image_names) + ["action", "action_is_pad"]:
             if k != "observation.images":
@@ -363,7 +362,7 @@ class DOTPolicy(nn.Module):
         self.state_noise *= self.config.noise_decay
         self.crop_scale = 1 - (1 - self.crop_scale) * self.config.noise_decay
 
-        return loss_dict
+        return loss, loss_dict
 
     @classmethod
     def from_pretrained(cls, pretrained_name_or_path, *args, **kwargs):
@@ -375,6 +374,20 @@ class DOTPolicy(nn.Module):
             policy.model = merge_lora_weights(policy.model)
 
         return policy
+
+    @torch.no_grad()
+    def predict_action_chunk(self, batch: dict[str, Tensor]) -> Tensor:
+        """Predict a chunk of actions given environment observations."""
+        self.eval()
+
+        batch = self.normalize_inputs(batch)
+        if self.config.image_features:
+            batch = dict(batch)  # shallow copy so that adding a key doesn't modify the original
+            batch[OBS_IMAGES] = [batch[key] for key in self.config.image_features]
+
+        actions = self.model(batch)[0]
+        actions = self.unnormalize_outputs({ACTION: actions})[ACTION]
+        return actions
 
     def save_pretrained_locally(self, save_directory: Union[str, Path]):
         """

@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
-
+from lerobot.configs.policies import PreTrainedConfig
 from lerobot.configs.types import PolicyFeature, FeatureType, NormalizationMode
 from lerobot.optim.optimizers import AdamWConfig
 from lerobot.optim.schedulers import CosineAnnealingSchedulerConfig
 
 
+@PreTrainedConfig.register_subclass("dot")
 @dataclass
-class DOTConfig:
+class DOTConfig(PreTrainedConfig):
     """Configuration for DOT (Decision Transformer) policy.
 
     You need to change some parameters in this configuration to make it work for your problem:
@@ -21,6 +22,9 @@ class DOTConfig:
     - predict_every_n: number of frames to predict in the future
     - return_every_n: instead of returning next predicted actions, returns nth future action
     """
+
+    # TODO: @Tristan added this:
+    pretrained_path: str = None
 
     # Input / output structure.
     n_obs_steps: int = 3
@@ -39,10 +43,10 @@ class DOTConfig:
     )
 
     # MODIFIED
-    image_features = {"observation.image": "cam_0"}
+    image_features = {"observation.images.cam": "cam"}
     # Define dummy features with .shape attributes
     input_features = {
-        "observation.image": PolicyFeature(type=FeatureType.VISUAL, shape=(3, 96, 96)),
+        "observation.images.cam": PolicyFeature(type=FeatureType.VISUAL, shape=(3, 96, 96)),
         "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(2,))
     }
     output_features = {
