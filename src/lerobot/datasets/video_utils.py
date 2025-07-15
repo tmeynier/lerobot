@@ -30,14 +30,18 @@ from PIL import Image
 
 
 def get_safe_default_codec():
+    # TODO: @Tristan changed the code below to never used torchcodec (safer)
+    """
     if importlib.util.find_spec("torchcodec"):
-        print("JE SUIS LA!!!")
         return "torchcodec"
     else:
         logging.warning(
             "'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder"
         )
         return "pyav"
+    """
+
+    return "pyav"
 
 
 def decode_video_frames(
