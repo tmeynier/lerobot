@@ -1,2 +1,3 @@
 from .auto_controller import AutoController
 from .pusht_auto_controller import PushtAutoController
+from .rule_based_controller import RuleBasedController

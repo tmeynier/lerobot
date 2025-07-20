@@ -27,6 +27,22 @@ class AutoController(ABC):
         super().__init__()
         self.show_camera = show_camera  # Display camera view of the controller's actions
 
+    @abstractmethod
+    def get_cameras(self) -> dict[str, Any]:
+        """
+        Retrieve information or handles to the cameras used by the controller.
+
+        This method should return a dictionary mapping camera names to either
+        image-producing objects, stream URLs, or relevant metadata.
+
+        Returns:
+            dict[str, Any]: A dictionary containing information about available cameras.
+
+        Raises:
+            NotImplementedError: If the subclass does not support camera access.
+        """
+        raise NotImplementedError("Subclasses must implement the 'get_cameras' method.")
+
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
         """

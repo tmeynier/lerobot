@@ -14,12 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..config import RobotConfig
 from dataclasses import dataclass
 
+from ..config import TeleoperatorConfig
 
-@RobotConfig.register_subclass("hepha_follower")
+
+@TeleoperatorConfig.register_subclass("so101_leader")
 @dataclass
-class HephaFollowerConfig(RobotConfig):
-    show_camera = True
-    auto_controller = "rule_based_controller"
+class SO101LeaderConfig(TeleoperatorConfig):
+    # Port to connect to the arm
+    port: str
+
+    use_degrees: bool = False

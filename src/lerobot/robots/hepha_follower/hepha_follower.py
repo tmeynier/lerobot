@@ -35,7 +35,6 @@ class HephaFollower(Robot):
 
     def __init__(self, config: HephaFollowerConfig):
         super().__init__(config)
-        self.cameras = ["cam"]
         self.show_camera = config.show_camera
 
         # Create the auto controller using the registered name and show_camera setting
@@ -43,6 +42,7 @@ class HephaFollower(Robot):
             config.auto_controller,
             show_camera=config.show_camera
         )
+        self.cameras = self.auto_controller.get_cameras()
 
     def reset(self):
         self.auto_controller.reset()
@@ -58,7 +58,7 @@ class HephaFollower(Robot):
 
         Note: this property should be able to be called regardless of whether the robot is connected or not.
         """
-        return {"motor_0": float, "motor_1": float, "cam": (96, 96, 3)}
+        return self.auto_controller.observation_features
 
     @cached_property
     def action_features(self) -> dict[str, type]:
@@ -70,7 +70,7 @@ class HephaFollower(Robot):
 
         Note: this property should be able to be called regardless of whether the robot is connected or not.
         """
-        return {"motor_0": float, "motor_1": float}
+        return self.auto_controller.action_features
 
     @property
     def is_connected(self) -> bool:

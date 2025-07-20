@@ -54,9 +54,11 @@ class PushtAutoController(AutoController):
         # ---------------------
         # Model checkpoint path (updated to your local .models directory)
         # ---------------------
-        checkpoint_path = os.path.expanduser(
-            "~/.models/dot/pusht/model.safetensors"
-        )
+        #checkpoint_path = os.path.expanduser(
+        #    "~/.models/dot/pusht/model.safetensors"
+        #)
+        checkpoint_path = ("../../checkpoints/tristan_meynier/dot_pusht_images_25_06_2025/"
+                           "checkpoints/last/pretrained_model/model.safetensors")
 
         # ---------------------
         # Queues
@@ -100,18 +102,29 @@ class PushtAutoController(AutoController):
         # Initial reset
         self.reset()
 
+    def get_cameras(self) -> dict[str, Any]:
+        """
+        Return a dictionary of available cameras. In this simulated environment,
+        no physical cameras are available, so a simulated camera "cam_0" is returned with a value of None.
+
+        Returns:
+            dict[str, Any]: Dictionary mapping camera names to camera interfaces or None.
+        """
+        return {"cam_0": None}
+
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
         """
         A dictionary describing the structure and types of the observations produced by the robot.
         Its structure (keys) should match the structure of what is returned by :pymeth:`get_observation`.
         Values for the dict should either be:
-            - The type of the value if it's a simple value, e.g. `float` for single proprioceptive value (a joint's position/velocity)
+            - The type of the value if it's a simple value, e.g. `float` for single proprioceptive
+            value (a joint's position/velocity)
             - A tuple representing the shape if it's an array-type value, e.g. `(height, width, channel)` for images
 
         Note: this property should be able to be called regardless of whether the robot is connected or not.
         """
-        return {"motor_0": float, "motor_1": float, "cam": (96, 96, 3)}
+        return {"motor_0": float, "motor_1": float, "cam_0": (96, 96, 3)}
 
     @cached_property
     def action_features(self) -> dict[str, type]:
@@ -166,7 +179,7 @@ class PushtAutoController(AutoController):
         return {
             "motor_0": obs["agent_pos"][0],
             "motor_1": obs["agent_pos"][0],
-            "cam": obs["pixels"],
+            "cam_0": obs["pixels"],
         }
 
     def get_action(self):
