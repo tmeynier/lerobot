@@ -352,15 +352,16 @@ class DOTPolicy(PreTrainedPolicy):
         actions_hat = self.model(batch)
 
         # TODO: @Tristan, for debugging
-        # Assuming batch["action"] and actions_hat are both tensors of shape (batch_size, action_dim)
-        idx = random.randint(0, batch["action"].shape[0] - 1)
+        if random.random() < 0.2:
+            # Pick a random index in the batch
+            idx = random.randint(0, batch["action"].shape[0] - 1)
 
-        # Extract one sample
-        action_true = batch["action"][idx]
-        action_pred = actions_hat[idx]
+            # Extract one sample
+            action_true = batch["action"][idx]
+            action_pred = actions_hat[idx]
 
-        print("Action True:", action_true)
-        print("Action Prediction:", action_pred)
+            print("Action True:", action_true)
+            print("Action Prediction:", action_pred)
 
         loss = nn.functional.l1_loss(batch["action"], actions_hat, reduction="none")
         rev_padding = (~batch["action_is_pad"]).unsqueeze(-1)
