@@ -24,6 +24,7 @@ from huggingface_hub import HfApi, create_repo, upload_folder
 from safetensors.torch import save_model
 from lerobot.policies.normalize import Unnormalize, Normalize
 from lerobot.policies.pretrained import PreTrainedPolicy
+import random
 
 
 class DOT(nn.Module):
@@ -349,6 +350,17 @@ class DOTPolicy(PreTrainedPolicy):
                     batch[k] += (torch.rand_like(batch[k]) * 2 - 1) * self.state_noise
 
         actions_hat = self.model(batch)
+
+        # TODO: @Tristan, for debugging
+        # Assuming batch["action"] and actions_hat are both tensors of shape (batch_size, action_dim)
+        idx = random.randint(0, batch["action"].shape[0] - 1)
+
+        # Extract one sample
+        action_true = batch["action"][idx]
+        action_pred = actions_hat[idx]
+
+        print("Action True:", action_true)
+        print("Action Prediction:", action_pred)
 
         loss = nn.functional.l1_loss(batch["action"], actions_hat, reduction="none")
         rev_padding = (~batch["action_is_pad"]).unsqueeze(-1)
