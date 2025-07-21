@@ -352,7 +352,7 @@ class DOTPolicy(PreTrainedPolicy):
         actions_hat = self.model(batch)
 
         # TODO: @Tristan, for debugging
-        if random.random() < 0.2:
+        if random.random() < 0.01:
             # Pick a random index in the batch
             idx = random.randint(0, batch["action"].shape[0] - 1)
 
