@@ -26,7 +26,7 @@ state_queue = deque(maxlen=nb_obs)
 ACTION_MIN = np.asarray([-0.225, -0.271, -0.175, -1.5708, -0.0333])
 ACTION_MAX = np.asarray([ 0.225,  0.271,  0.175,  0.7854,  0.0333])
 
-CHECKPOINT_PATH = "../../../checkpoints/tristan_meynier/dot_hepha_images_21_07_2025/checkpoints/last/pretrained_model/model.safetensors"
+CHECKPOINT_PATH = "../../../../checkpoints/tristan_meynier/dot_hepha_images_21_07_2025/checkpoints/last/pretrained_model/model.safetensors"
 
 
 config = DOTConfig()
@@ -134,9 +134,6 @@ for ep in range(5):  # Run 5 episodes
 
         # Denormalize
         action = 0.5 * (action + 1.0) * (ACTION_MAX - ACTION_MIN) + ACTION_MIN
-
-        print("ACTION")
-        print(action)
 
         # Step in the environment
         obs, reward, terminated, truncated, info = env.step(action)
