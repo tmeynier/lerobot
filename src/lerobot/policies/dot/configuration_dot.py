@@ -47,7 +47,7 @@ class DOTConfig(PreTrainedConfig):
     # Define dummy features with .shape attributes
     input_features = {
         "observation.images": PolicyFeature(type=FeatureType.VISUAL, shape=(6, 264, 264)),
-        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(5,))
+        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(11,))
     }
     output_features = {
         "action": PolicyFeature(type=FeatureType.ACTION, shape=(5,)),
@@ -73,11 +73,17 @@ class DOTConfig(PreTrainedConfig):
     # Not sure if there is a better way to do this with new config system.
     override_dataset_stats: bool = False
     new_dataset_stats: dict[str, dict[str, list[float]]] = field(
+        #default_factory=lambda: {
+        #    "action": {"max": [0.225, 0.271, 0.175, 0.7854, 0.0333],
+        #               "min": [-0.225, -0.271, -0.175, -1.5708, -0.0333]},
+        #    "observation.state": {"max": [0.225, 0.271, 0.175, 0.7854, 0.0333],
+        #                          "min": [-0.225, -0.271, -0.175, -1.5708, -0.0333]},
+        #}
         default_factory=lambda: {
-            "action": {"max": [0.225, 0.271, 0.175, 0.7854, 0.0333],
-                       "min": [-0.225, -0.271, -0.175, -1.5708, -0.0333]},
-            "observation.state": {"max": [0.225, 0.271, 0.175, 0.7854, 0.0333],
-                                  "min": [-0.225, -0.271, -0.175, -1.5708, -0.0333]},
+            "action": {"max": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                       "min": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]},
+            "observation.state": {"max": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                                  "min": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]},
         }
     )
 
@@ -88,9 +94,9 @@ class DOTConfig(PreTrainedConfig):
     lora_rank: int = 20
     merge_lora: bool = False
 
-    dim_model: int = 3*128
+    dim_model: int = 4*128
     n_heads: int = 8
-    dim_feedforward: int = 3*512
+    dim_feedforward: int = 512
     n_decoder_layers: int = 8
     rescale_shape: tuple[int, int] = (264, 264)
 

@@ -1,104 +1,120 @@
-# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+import cv2
+import random
+import fsspec
+import numpy as np
+import pandas as pd
+from gym_hepha.envs.hepha import GymHepha
 
-"""
-Replays the actions of an episode from a dataset on a robot.
+# Constants
+DATASET_NAME = "tmeynier/test_hepha_record_22"
+REPO_URL = f"https://huggingface.co/datasets/{DATASET_NAME}/resolve/main"
+CHUNK_ID = 0
+NUM_EPISODES = 300
 
-Example:
+# Action scaling bounds
+ACTION_MIN = np.asarray([-0.225, -0.271, -0.175, -1.5708, -0.0333])
+ACTION_MAX = np.asarray([ 0.225,  0.271,  0.175,  0.7854,  0.0333])
 
-```shell
-python -m lerobot.replay \
-    --robot.type=so100_follower \
-    --robot.port=/dev/tty.usbmodem58760431541 \
-    --robot.id=black \
-    --dataset.repo_id=aliberts/record-test \
-    --dataset.episode=2
-```
-"""
+# Pick a random episode
+episode_id = random.randint(0, NUM_EPISODES - 1)
+print(f"[INFO] Selected episode {episode_id}")
 
-import logging
-import time
-from dataclasses import asdict, dataclass
-from pathlib import Path
-from pprint import pformat
+# Build Parquet file URL
+parquet_path = f"{REPO_URL}/data/chunk-{CHUNK_ID:03d}/episode_{episode_id:06d}.parquet"
+print(f"[INFO] Loading parquet file: {parquet_path}")
 
-import draccus
+# Load the episode
+with fsspec.open(parquet_path) as f:
+    df = pd.read_parquet(f)
 
-from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.robots import (  # noqa: F401
-    Robot,
-    RobotConfig,
-    hope_jr,
-    koch_follower,
-    make_robot_from_config,
-    so100_follower,
-    so101_follower,
-    hepha_follower,
+# Denormalize actions
+normalized_actions = np.stack(df["action"].tolist())
+actions = 0.5 * (normalized_actions + 1.0) * (ACTION_MAX - ACTION_MIN) + ACTION_MIN
+print(f"[INFO] Loaded {len(actions)} actions.")
+
+# Load videos from Hugging Face with fsspec and OpenCV
+def open_hf_video(repo_url, path):
+    """Returns cv2.VideoCapture object from a remote Hugging Face video URL."""
+    video_url = f"{repo_url}/videos/chunk-{CHUNK_ID:03d}/{path}/episode_{episode_id:06d}.mp4"
+    print(f"[INFO] Loading video from: {video_url}")
+    file = fsspec.open(video_url).open()
+    # Read video into bytes, write to buffer, open with OpenCV
+    video_bytes = file.read()
+    np_arr = np.frombuffer(video_bytes, np.uint8)
+    video = cv2.imdecode(np_arr, cv2.IMREAD_UNCHANGED)
+    return video
+
+# Alternative: using local tempfile if cv2.VideoCapture can't handle streams directly
+def video_capture_from_hf(repo_url, path):
+    import tempfile
+    video_url = f"{repo_url}/videos/chunk-{CHUNK_ID:03d}/{path}/episode_{episode_id:06d}.mp4"
+    print(f"[INFO] Loading video: {video_url}")
+    with fsspec.open(video_url, "rb") as f:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+            tmp.write(f.read())
+            return cv2.VideoCapture(tmp.name)
+
+# Load both videos
+gripper_video = video_capture_from_hf(REPO_URL, "observation.images.gripper_cam")
+top_view_video = video_capture_from_hf(REPO_URL, "observation.images.top_view")
+
+# Setup environment
+env = GymHepha(
+    task_name="bucket_to_bin",
+    observation_width=264,
+    observation_height=264,
+    visualization_width=160,
+    visualization_height=160
 )
-from lerobot.utils.robot_utils import busy_wait
-from lerobot.utils.utils import (
-    init_logging,
-    log_say,
-)
 
+obs, _ = env.reset()
+done = False
 
-@dataclass
-class DatasetReplayConfig:
-    # Dataset identifier. By convention it should match '{hf_username}/{dataset_name}' (e.g. `lerobot/test`).
-    repo_id: str
-    # Episode to replay.
-    episode: int
-    # Root directory where the dataset will be stored (e.g. 'dataset/path').
-    root: str | Path | None = None
-    # Limit the frames per second. By default, uses the policy fps.
-    fps: int = 30
+for i, action in enumerate(actions):
+    # Environment step
+    obs, reward, terminated, truncated, info = env.step(action)
+    done = terminated or truncated
 
+    # Environment frame
+    env_top = obs["pixels"][:, :, :3]
+    env_gripper = obs["pixels"][:, :, 3:]
 
-@dataclass
-class ReplayConfig:
-    robot: RobotConfig
-    dataset: DatasetReplayConfig
-    # Use vocal synthesis to read events.
-    play_sounds: bool = True
+    env_top_bgr = cv2.cvtColor(env_top, cv2.COLOR_RGB2BGR)
+    env_gripper_bgr = cv2.cvtColor(env_gripper, cv2.COLOR_RGB2BGR)
 
+    # Read video frame
+    ret_top, top_video_frame = top_view_video.read()
+    ret_gripper, gripper_video_frame = gripper_video.read()
 
-@draccus.wrap()
-def replay(cfg: ReplayConfig):
-    init_logging()
-    logging.info(pformat(asdict(cfg)))
+    if not ret_top or not ret_gripper:
+        print("[WARN] Video frame read failed.")
+        break
 
-    robot = make_robot_from_config(cfg.robot)
-    dataset = LeRobotDataset(cfg.dataset.repo_id, root=cfg.dataset.root, episodes=[cfg.dataset.episode])
-    actions = dataset.hf_dataset.select_columns("action")
-    robot.connect()
+    # Resize all frames to same size (e.g. 320x320 for uniform grid)
+    target_size = (320, 320)
+    env_top_bgr_resized = cv2.resize(env_top_bgr, target_size)
+    env_gripper_bgr_resized = cv2.resize(env_gripper_bgr, target_size)
+    top_video_resized = cv2.resize(top_video_frame, target_size)
+    gripper_video_resized = cv2.resize(gripper_video_frame, target_size)
 
-    log_say("Replaying episode", cfg.play_sounds, blocking=True)
-    for idx in range(dataset.num_frames):
-        start_episode_t = time.perf_counter()
+    # Stack frames into 2x2 grid
+    top_row = np.hstack((env_top_bgr_resized, gripper_video_resized))
+    bottom_row = np.hstack((env_gripper_bgr_resized, top_video_resized))
+    combined_frame = np.vstack((top_row, bottom_row))
 
-        action_array = actions[idx]["action"]
-        action = {}
-        for i, name in enumerate(dataset.features["action"]["names"]):
-            action[name] = action_array[i]
+    # Display the single combined frame
+    cv2.imshow("🧠 Replay Viewer - Env vs Video", combined_frame)
 
-        robot.send_action(action)
+    key = cv2.waitKey(100)
+    if key == ord('q'):
+        print("[INFO] Quit early")
+        break
 
-        dt_s = time.perf_counter() - start_episode_t
-        busy_wait(1 / dataset.fps - dt_s)
+    if done:
+        print("[INFO] Episode ended")
+        break
 
-    robot.disconnect()
-
-
-if __name__ == "__main__":
-    replay()
+env.close()
+gripper_video.release()
+top_view_video.release()
+cv2.destroyAllWindows()
