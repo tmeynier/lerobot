@@ -43,14 +43,15 @@ class DOTConfig(PreTrainedConfig):
     )
 
     # MODIFIED
-    image_features = {"observation.images.gripper_cam": "gripper_cam", "observation.images.top_view": "top_view"}
+    #image_features = {"observation.images.gripper_cam": "gripper_cam", "observation.images.top_view": "top_view"}
+    image_features = {"observation.image": "cam_0"}
     # Define dummy features with .shape attributes
     input_features = {
-        "observation.images": PolicyFeature(type=FeatureType.VISUAL, shape=(6, 264, 264)),
-        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(11,))
+        "observation.images": PolicyFeature(type=FeatureType.VISUAL, shape=(3, 96, 96)),
+        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(2,))
     }
     output_features = {
-        "action": PolicyFeature(type=FeatureType.ACTION, shape=(5,)),
+        "action": PolicyFeature(type=FeatureType.ACTION, shape=(2,)),
     }
     # Define dummy features with .shape attributes
     robot_state_feature = input_features["observation.state"]
@@ -72,6 +73,7 @@ class DOTConfig(PreTrainedConfig):
 
     # Not sure if there is a better way to do this with new config system.
     override_dataset_stats: bool = False
+    """
     new_dataset_stats: dict[str, dict[str, list[float]]] = field(
         #default_factory=lambda: {
         #    "action": {"max": [0.225, 0.271, 0.175, 0.7854, 0.0333],
@@ -86,6 +88,14 @@ class DOTConfig(PreTrainedConfig):
                                   "min": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]},
         }
     )
+    """
+    new_dataset_stats: dict[str, dict[str, list[float]]] = field(
+        default_factory=lambda: {
+            "action": {"max": [512.0] * 2, "min": [0.0] * 2},
+            "observation.environment_state": {"max": [512.0] * 16, "min": [0.0] * 16},
+            "observation.state": {"max": [512.0] * 2, "min": [0.0] * 2},
+        }
+    )
 
     # Architecture.
     vision_backbone: str = "resnet18"
@@ -94,11 +104,11 @@ class DOTConfig(PreTrainedConfig):
     lora_rank: int = 20
     merge_lora: bool = False
 
-    dim_model: int = 4*128
+    dim_model: int = 128
     n_heads: int = 8
     dim_feedforward: int = 512
     n_decoder_layers: int = 8
-    rescale_shape: tuple[int, int] = (264, 264)
+    rescale_shape: tuple[int, int] = (96, 96)
 
     # Augmentation.
     crop_scale: float = 0.8
