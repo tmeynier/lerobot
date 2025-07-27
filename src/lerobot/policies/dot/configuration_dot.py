@@ -43,15 +43,15 @@ class DOTConfig(PreTrainedConfig):
     )
 
     # MODIFIED
-    #image_features = {"observation.images.gripper_cam": "gripper_cam", "observation.images.top_view": "top_view"}
-    image_features = {"observation.image": "cam_0"}
+    image_features = {"observation.images.gripper_cam": "gripper_cam", "observation.images.top_view": "top_view"}
+    #image_features = {"observation.image": "cam_0"}
     # Define dummy features with .shape attributes
     input_features = {
-        "observation.images": PolicyFeature(type=FeatureType.VISUAL, shape=(3, 96, 96)),
-        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(2,))
+        "observation.images": PolicyFeature(type=FeatureType.VISUAL, shape=(6, 264, 264)),
+        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(11,))
     }
     output_features = {
-        "action": PolicyFeature(type=FeatureType.ACTION, shape=(2,)),
+        "action": PolicyFeature(type=FeatureType.ACTION, shape=(5,)),
     }
     # Define dummy features with .shape attributes
     robot_state_feature = input_features["observation.state"]
@@ -73,7 +73,6 @@ class DOTConfig(PreTrainedConfig):
 
     # Not sure if there is a better way to do this with new config system.
     override_dataset_stats: bool = False
-    """
     new_dataset_stats: dict[str, dict[str, list[float]]] = field(
         #default_factory=lambda: {
         #    "action": {"max": [0.225, 0.271, 0.175, 0.7854, 0.0333],
@@ -82,12 +81,27 @@ class DOTConfig(PreTrainedConfig):
         #                          "min": [-0.225, -0.271, -0.175, -1.5708, -0.0333]},
         #}
         default_factory=lambda: {
-            "action": {"max": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                       "min": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]},
+            "action": {"max": [1, 1, 1, 1, 1],
+                       "min": [-1, -1, -1, -1, -1]},
             "observation.state": {"max": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                                   "min": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]},
         }
     )
+
+    BUCKET_SAMPLING_RANGE = {
+        "x_range": [-0.35, -0.45],
+        "y_range": [-0.28, 0.28],
+        "z_range": [0, 0],
+    }
+
+    BIN_SAMPLING_RANGE = {
+        "x_range": [-1.3, -1.2],  # -0.8 Ordered from min to max
+        "y_range": [-0.28, 0.28],
+        "z_range": [0, 0],
+    }
+
+
+
     """
     new_dataset_stats: dict[str, dict[str, list[float]]] = field(
         default_factory=lambda: {
@@ -96,6 +110,7 @@ class DOTConfig(PreTrainedConfig):
             "observation.state": {"max": [512.0] * 2, "min": [0.0] * 2},
         }
     )
+    """
 
     # Architecture.
     vision_backbone: str = "resnet18"
@@ -104,11 +119,11 @@ class DOTConfig(PreTrainedConfig):
     lora_rank: int = 20
     merge_lora: bool = False
 
-    dim_model: int = 128
+    dim_model: int = 4*128
     n_heads: int = 8
     dim_feedforward: int = 512
     n_decoder_layers: int = 8
-    rescale_shape: tuple[int, int] = (96, 96)
+    rescale_shape: tuple[int, int] = (264, 264)
 
     # Augmentation.
     crop_scale: float = 0.8
