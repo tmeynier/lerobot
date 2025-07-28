@@ -154,6 +154,7 @@ class RuleBasedController(AutoController):
         obs, reward, terminated, truncated, info = self.env.step(action)
         self.done = self.done or truncated
 
+        """
         # Update observation queues
         top_view_image = cv2.resize(obs["pixels"][:, :, :3], (self.observation_width, self.observation_height))
         gripper_cam_image = cv2.resize(obs["pixels"][:, :, 3:], (self.observation_width, self.observation_height))
@@ -169,6 +170,7 @@ class RuleBasedController(AutoController):
             key = cv2.waitKey(10)
             if key == ord('q'):
                 self.done = True
+        """
 
         # Scale the action using env's method
         scaled_action = self.env.scale_action(action)

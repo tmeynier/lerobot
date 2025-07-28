@@ -27,11 +27,11 @@ class DOTConfig(PreTrainedConfig):
     pretrained_path: str = None
 
     # Input / output structure.
-    n_obs_steps: int = 3
-    train_horizon: int = 20
-    inference_horizon: int = 20
-    lookback_obs_steps: int = 10
-    lookback_aug: int = 5
+    n_obs_steps: int = 4 # 3
+    train_horizon: int = 10 # 20
+    inference_horizon: int = 10 # 20
+    lookback_obs_steps: int = 5 # 10
+    lookback_aug: int = 4 # 5
 
     normalization_mapping: dict[str, NormalizationMode] = field(
         default_factory=lambda: {
@@ -87,19 +87,6 @@ class DOTConfig(PreTrainedConfig):
                                   "min": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]},
         }
     )
-
-    BUCKET_SAMPLING_RANGE = {
-        "x_range": [-0.35, -0.45],
-        "y_range": [-0.28, 0.28],
-        "z_range": [0, 0],
-    }
-
-    BIN_SAMPLING_RANGE = {
-        "x_range": [-1.3, -1.2],  # -0.8 Ordered from min to max
-        "y_range": [-0.28, 0.28],
-        "z_range": [0, 0],
-    }
-
 
 
     """
