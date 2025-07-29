@@ -48,7 +48,7 @@ class DOTConfig(PreTrainedConfig):
     # Define dummy features with .shape attributes
     input_features = {
         "observation.images": PolicyFeature(type=FeatureType.VISUAL, shape=(6, 264, 264)),
-        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(11,))
+        "observation.state": PolicyFeature(type=FeatureType.STATE, shape=(5,))
     }
     output_features = {
         "action": PolicyFeature(type=FeatureType.ACTION, shape=(5,)),
@@ -57,7 +57,7 @@ class DOTConfig(PreTrainedConfig):
     robot_state_feature = input_features["observation.state"]
     action_feature = output_features["action"]
     env_state_feature = None
-    device = "cpu"
+    device = "cuda"
     verbose = False
     train_validation_split = 0.8
     batch_size = 24
@@ -83,8 +83,8 @@ class DOTConfig(PreTrainedConfig):
         default_factory=lambda: {
             "action": {"max": [1, 1, 1, 1, 1],
                        "min": [-1, -1, -1, -1, -1]},
-            "observation.state": {"max": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                                  "min": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]},
+            "observation.state": {"max": [1, 1, 1, 1, 1],
+                                  "min": [-1, -1, -1, -1, -1]},
         }
     )
 

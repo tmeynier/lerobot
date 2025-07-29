@@ -27,8 +27,6 @@ with fsspec.open(parquet_path) as f:
 
 # Extract actions as NumPy array
 actions = np.stack(df["action"].tolist())
-print("ACTIONS")
-print(actions)
 print(f"[INFO] Loaded {len(actions)} actions.")
 
 # ----------------------

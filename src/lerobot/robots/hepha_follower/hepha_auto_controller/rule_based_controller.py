@@ -54,6 +54,7 @@ class RuleBasedController(AutoController):
         """
         return {"top_view": None, "gripper_cam": None}
 
+    """
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
         return {"z_slide_1": float, "x_slide": float, "y_slide": float, "rotate_arm_1": float,
@@ -62,13 +63,19 @@ class RuleBasedController(AutoController):
                 "bin_pos_x": float, "bin_pos_y": float, "bin_pos_z": float,
                 "top_view": (self.observation_width, self.observation_height, 3),
                 "gripper_cam": (self.observation_width, self.observation_height, 3)}
+    """
+
+    @cached_property
+    def observation_features(self) -> dict[str, type | tuple]:
+        return {"z_slide_1": float, "x_slide": float, "y_slide": float, "rotate_arm_1": float,
+                "slide_gripper_finger_0": float,
+                "top_view": (self.observation_width, self.observation_height, 3),
+                "gripper_cam": (self.observation_width, self.observation_height, 3)}
 
     @cached_property
     def action_features(self) -> dict[str, type]:
-
         return {"z_slide_1": float, "x_slide": float, "y_slide": float,
-                "rotate_arm_1": float, "slide_gripper_finger_0": float
-                }
+                "rotate_arm_1": float, "slide_gripper_finger_0": float}
 
     def reset(self):
         """
@@ -119,6 +126,7 @@ class RuleBasedController(AutoController):
             np.uint8)
         noisy_top_view = np.clip(top_view + np.random.normal(0, noise_std_img, top_view.shape), 0, 255).astype(np.uint8)
 
+        """
         bucket_pos = np.array(obs["bucket_pos"], dtype=np.float32)
         bin_pos = np.array(obs["bin_pos"], dtype=np.float32)
 
@@ -134,6 +142,17 @@ class RuleBasedController(AutoController):
             "bin_pos_x": bin_pos[0],
             "bin_pos_y": bin_pos[1],
             "bin_pos_z": bin_pos[2],
+            "gripper_cam": noisy_gripper_cam,
+            "top_view": noisy_top_view
+        }
+        """
+
+        return {
+            "z_slide_1": noisy_agent_pos[0],
+            "x_slide": noisy_agent_pos[1],
+            "y_slide": noisy_agent_pos[2],
+            "rotate_arm_1": noisy_agent_pos[3],
+            "slide_gripper_finger_0": noisy_agent_pos[4],
             "gripper_cam": noisy_gripper_cam,
             "top_view": noisy_top_view
         }
@@ -154,7 +173,6 @@ class RuleBasedController(AutoController):
         obs, reward, terminated, truncated, info = self.env.step(action)
         self.done = self.done or truncated
 
-        """
         # Update observation queues
         top_view_image = cv2.resize(obs["pixels"][:, :, :3], (self.observation_width, self.observation_height))
         gripper_cam_image = cv2.resize(obs["pixels"][:, :, 3:], (self.observation_width, self.observation_height))
@@ -170,7 +188,6 @@ class RuleBasedController(AutoController):
             key = cv2.waitKey(10)
             if key == ord('q'):
                 self.done = True
-        """
 
         # Scale the action using env's method
         scaled_action = self.env.scale_action(action)
