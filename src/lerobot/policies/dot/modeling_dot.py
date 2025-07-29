@@ -363,6 +363,12 @@ class DOTPolicy(PreTrainedPolicy):
                 if k != "observation.images":
                     batch[k] += (torch.rand_like(batch[k]) * 2 - 1) * self.state_noise
 
+        print("BATCH INFORMATION 2")
+        print(list(batch.keys()))
+        print(batch["action"].shape)
+        print(batch["action"][0])
+        print(batch["observation.state"].shape)
+        print(batch["observation.state"][0])
         actions_hat = self.model(batch)
         print("ACTIONS HAT OF THE MODEL")
         print(actions_hat.shape)
