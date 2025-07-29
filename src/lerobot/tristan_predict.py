@@ -9,10 +9,8 @@ from lerobot.policies.dot.modeling_dot import DOTPolicy
 from lerobot.policies.dot.configuration_dot import DOTConfig
 
 # Parameters
-nb_obs = 3
+nb_obs = 4
 image_size = (264, 264)
-state_dim = 5
-batch_size = 1
 
 # Initialize observation queues
 top_view_image_queue = deque(maxlen=nb_obs)
@@ -26,30 +24,22 @@ state_queue = deque(maxlen=nb_obs)
 ACTION_MIN = np.asarray([-0.225, -0.271, -0.175, -1.5708, -0.0333])
 ACTION_MAX = np.asarray([ 0.225,  0.271,  0.175,  0.7854,  0.0333])
 
-CHECKPOINT_PATH = "../../../../checkpoints/tristan_meynier/dot_hepha_images_21_07_2025/checkpoints/last/pretrained_model/model.safetensors"
+CHECKPOINT_PATH = "../../../../checkpoints/tristan_meynier/dot_hepha_images_29_07_2025/checkpoints/010000/pretrained_model/model.safetensors"
 
 
 config = DOTConfig()
 
 dataset_stats = {
     'action': {
-        'min': torch.tensor([-0.22499999, -0.271, -0.175, -1.57079637, -0.03333334],
+        'min': torch.tensor([-1, -1, -1, -1, -1],
                             dtype=torch.float32, device=config.device),
-        'max': torch.tensor([0.22499999, 0.271, 0.175, 0.00920367, 0.02666667],
-                            dtype=torch.float32, device=config.device),
-        'mean': torch.tensor([0.14123121, -0.00396572, 0.14933296, -0.67251203, -0.00263111],
-                            dtype=torch.float32, device=config.device),
-        'std': torch.tensor([0.10256309, 0.13619233, 0.07710076, 0.58981638, 0.02509085],
+        'max': torch.tensor([1, 1, 1, 1, 1],
                             dtype=torch.float32, device=config.device),
     },
     'observation.state': {
-        'min': torch.tensor([-0.22504972, -0.27100238, -0.16161282, -1.57109308, -0.03333334],
+        'min': torch.tensor([-1, -1, -1, -1, -1],
                             dtype=torch.float32, device=config.device),
-        'max': torch.tensor([0.22500309, 0.27100295, 0.18204679, 0.00084918, 0.02664405],
-                            dtype=torch.float32, device=config.device),
-        'mean': torch.tensor([0.14117881, -0.00396553, 0.15004326, -0.67699052, -0.0028281],
-                            dtype=torch.float32, device=config.device),
-        'std': torch.tensor([0.10254265, 0.13619192, 0.07300066, 0.58604096, 0.02507234],
+        'max': torch.tensor([1, 1, 1, 1, 1],
                             dtype=torch.float32, device=config.device),
     },
     'observation.images.gripper_cam': {
@@ -92,8 +82,10 @@ observation, info = env.reset()
 # Main loop
 for ep in range(5):  # Run 5 episodes
     obs, _ = env.reset()
+    obs = env.scale_obs(obs)
     done = False
     total_reward = 0
+    frame_index = 0
 
     # Reset queues
     top_view_image_queue.clear()
@@ -129,7 +121,14 @@ for ep in range(5):  # Run 5 episodes
         }
 
         with torch.no_grad():
+            print("BATCH")
+            print(batch["observation.state"])
             action = model.select_action(batch).cpu().numpy()
+        print("TRUE ACTION")
+        print(env.scale_action(env.get_action(frame_index)))
+        frame_index += 1
+        print("PREDICTED ACTION")
+        print(action)
         action = action[0]
 
         # Denormalize
@@ -137,6 +136,8 @@ for ep in range(5):  # Run 5 episodes
 
         # Step in the environment
         obs, reward, terminated, truncated, info = env.step(action)
+        obs = env.scale_obs(obs)
+
         done = done or truncated
         total_reward += reward
 

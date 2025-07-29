@@ -72,7 +72,7 @@ class DOTConfig(PreTrainedConfig):
 
 
     # Not sure if there is a better way to do this with new config system.
-    override_dataset_stats: bool = False
+    override_dataset_stats: bool = True
     new_dataset_stats: dict[str, dict[str, list[float]]] = field(
         #default_factory=lambda: {
         #    "action": {"max": [0.225, 0.271, 0.175, 0.7854, 0.0333],
