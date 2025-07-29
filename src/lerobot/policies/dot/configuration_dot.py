@@ -106,7 +106,7 @@ class DOTConfig(PreTrainedConfig):
     lora_rank: int = 20
     merge_lora: bool = False
 
-    dim_model: int = 4*128
+    dim_model: int = 2*128
     n_heads: int = 8
     dim_feedforward: int = 512
     n_decoder_layers: int = 8
