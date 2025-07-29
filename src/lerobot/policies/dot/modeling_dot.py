@@ -318,9 +318,11 @@ class DOTPolicy(PreTrainedPolicy):
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, dict]:
         print("==============================================")
         print("BATCH INFORMATION")
-        print(batch.keys)
-        print(batch["action"])
-        print(batch["observation.state"])
+        print(list(batch.keys()))
+        print(batch["action"].shape)
+        print(batch["action"][0])
+        print(batch["observation.state"].shape)
+        print(batch["observation.state"][0])
         lookback_ind = torch.randint(0, 2 * self.config.lookback_aug + 1, (1,)).item()
         print("LOOK BACK IND")
         print(lookback_ind)
@@ -363,7 +365,8 @@ class DOTPolicy(PreTrainedPolicy):
 
         actions_hat = self.model(batch)
         print("ACTIONS HAT OF THE MODEL")
-        print(actions_hat)
+        print(actions_hat.shape)
+        print(actions_hat[0])
 
         """
         # TODO: @Tristan, for debugging
@@ -380,7 +383,8 @@ class DOTPolicy(PreTrainedPolicy):
         """
 
         print("BATCH ACTION")
-        print(batch["action"])
+        print(batch["action"].shape)
+        print(batch["action"][0])
 
         loss = nn.functional.l1_loss(batch["action"], actions_hat, reduction="none")
         rev_padding = (~batch["action_is_pad"]).unsqueeze(-1)
