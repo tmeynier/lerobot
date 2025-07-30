@@ -179,6 +179,8 @@ class Normalize(nn.Module):
                 print(f"USING MEAN STD FOR {key}")
                 mean = buffer["mean"]
                 std = buffer["std"]
+                print(f"Mean: {mean}")
+                print(f"Std: {std}")
                 assert not torch.isinf(mean).any(), _no_stats_error_str("mean")
                 assert not torch.isinf(std).any(), _no_stats_error_str("std")
                 batch[key] = (batch[key] - mean) / (std + 1e-8)
@@ -186,6 +188,8 @@ class Normalize(nn.Module):
                 print(f"USING MIN MAX FOR {key}")
                 min = buffer["min"]
                 max = buffer["max"]
+                print(f"Min: {min}")
+                print(f"Max: {max}")
                 assert not torch.isinf(min).any(), _no_stats_error_str("min")
                 assert not torch.isinf(max).any(), _no_stats_error_str("max")
                 # normalize to [0,1]
