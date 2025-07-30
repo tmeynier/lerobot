@@ -146,6 +146,12 @@ class Normalize(nn.Module):
         self.features = features
         self.norm_map = norm_map
         self.stats = stats
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        print("NORMALIZATION PARAMETERS")
+        print(self.features)
+        print(self.norm_map)
+        print(self.stats)
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
         stats_buffers = create_stats_buffers(features, norm_map, stats)
         for key, buffer in stats_buffers.items():
             setattr(self, "buffer_" + key.replace(".", "_"), buffer)
@@ -155,8 +161,11 @@ class Normalize(nn.Module):
     def forward(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
         # TODO: Remove this shallow copy
         batch = dict(batch)  # shallow copy avoids mutating the input batch
+        print("NORMALIZATION FOR BACTH")
+        print(list(batch.keys()))
         for key, ft in self.features.items():
             if key not in batch:
+                print("SILENT ERROR")
                 # FIXME(aliberts, rcadene): This might lead to silent fail!
                 continue
 
@@ -167,12 +176,14 @@ class Normalize(nn.Module):
             buffer = getattr(self, "buffer_" + key.replace(".", "_"))
 
             if norm_mode is NormalizationMode.MEAN_STD:
+                print(f"USING MEAN STD FOR {key}")
                 mean = buffer["mean"]
                 std = buffer["std"]
                 assert not torch.isinf(mean).any(), _no_stats_error_str("mean")
                 assert not torch.isinf(std).any(), _no_stats_error_str("std")
                 batch[key] = (batch[key] - mean) / (std + 1e-8)
             elif norm_mode is NormalizationMode.MIN_MAX:
+                print(f"USING MIN MAX FOR {key}")
                 min = buffer["min"]
                 max = buffer["max"]
                 assert not torch.isinf(min).any(), _no_stats_error_str("min")
@@ -220,6 +231,12 @@ class Unnormalize(nn.Module):
         self.features = features
         self.norm_map = norm_map
         self.stats = stats
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        print("UN-NORMALIZATION PARAMETERS")
+        print(self.features)
+        print(self.norm_map)
+        print(self.stats)
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
         # `self.buffer_observation_state["mean"]` contains `torch.tensor(state_dim)`
         stats_buffers = create_stats_buffers(features, norm_map, stats)
         for key, buffer in stats_buffers.items():
@@ -229,8 +246,11 @@ class Unnormalize(nn.Module):
     @torch.no_grad()
     def forward(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
         batch = dict(batch)  # shallow copy avoids mutating the input batch
+        print("UN-NORMALIZATION FOR BACTH")
+        print(list(batch.keys()))
         for key, ft in self.features.items():
             if key not in batch:
+                print("SILENT ERROR")
                 continue
 
             norm_mode = self.norm_map.get(ft.type, NormalizationMode.IDENTITY)
@@ -240,12 +260,14 @@ class Unnormalize(nn.Module):
             buffer = getattr(self, "buffer_" + key.replace(".", "_"))
 
             if norm_mode is NormalizationMode.MEAN_STD:
+                print(f"USING MEAN STD FOR {key}")
                 mean = buffer["mean"]
                 std = buffer["std"]
                 assert not torch.isinf(mean).any(), _no_stats_error_str("mean")
                 assert not torch.isinf(std).any(), _no_stats_error_str("std")
                 batch[key] = batch[key] * std + mean
             elif norm_mode is NormalizationMode.MIN_MAX:
+                print(f"USING MIN MAX FOR {key}")
                 min = buffer["min"]
                 max = buffer["max"]
                 assert not torch.isinf(min).any(), _no_stats_error_str("min")
