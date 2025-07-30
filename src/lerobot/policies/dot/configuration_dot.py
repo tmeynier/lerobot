@@ -35,7 +35,7 @@ class DOTConfig(PreTrainedConfig):
 
     normalization_mapping: dict[str, NormalizationMode] = field(
         default_factory=lambda: {
-            "VISUAL": NormalizationMode.MEAN_STD,
+            "VISUAL": NormalizationMode.IDENTITY, #NormalizationMode.MEAN_STD,
             "STATE": NormalizationMode.IDENTITY, # NormalizationMode.MIN_MAX
             "ENV": NormalizationMode.MIN_MAX,
             "ACTION": NormalizationMode.IDENTITY, # NormalizationMode.MIN_MAX

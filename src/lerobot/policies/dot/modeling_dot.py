@@ -175,10 +175,10 @@ class DOTPolicy(PreTrainedPolicy):
                 for k1, v1 in v.items():
                     dataset_stats[k][k1] = torch.tensor(v1)
 
-        print("***********************************")
-        print("USING DATASET STATS")
-        print(dataset_stats)
-        print("***********************************")
+        #print("***********************************")
+        #print("USING DATASET STATS")
+        #print(dataset_stats)
+        #print("***********************************")
         self.normalize_inputs = Normalize(config.input_features, config.normalization_mapping, dataset_stats)
         self.normalize_targets = Normalize(
             config.output_features, config.normalization_mapping, dataset_stats
@@ -316,23 +316,23 @@ class DOTPolicy(PreTrainedPolicy):
         return action
 
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, dict]:
-        print("==============================================")
-        print("BATCH INFORMATION")
-        print(f"CURRENT INDEX: {batch['index']}")
-        print(f"CURRENT EPISODE INDEX: {batch['episode_index']}")
-        print(f"CURRENT FRAME INDEX: {batch['frame_index']}")
-        print(f"CURRENT TASK INDEX: {batch['task_index']}")
+        #print("==============================================")
+        #print("BATCH INFORMATION")
+        #print(f"CURRENT INDEX: {batch['index']}")
+        #print(f"CURRENT EPISODE INDEX: {batch['episode_index']}")
+        #print(f"CURRENT FRAME INDEX: {batch['frame_index']}")
+        #print(f"CURRENT TASK INDEX: {batch['task_index']}")
 
-        print(list(batch.keys()))
-        print(batch["action"].shape)
-        print(batch["action"][0])
-        print(batch["observation.state"].shape)
-        print(batch["observation.state"][0])
+        #print(list(batch.keys()))
+        #print(batch["action"].shape)
+        #print(batch["action"][0])
+        #print(batch["observation.state"].shape)
+        #print(batch["observation.state"][0])
         lookback_ind = torch.randint(0, 2 * self.config.lookback_aug + 1, (1,)).item()
-        print("LOOK BACK IND")
-        print(lookback_ind)
+        #print("LOOK BACK IND")
+        #print(lookback_ind)
         for k in list(self.model.obs_mapping.values()) + list(self.image_names) + ["action", "action_is_pad"]:
-            print(f"FORMATTING FOR: {k}")
+            #print(f"FORMATTING FOR: {k}")
             if k != "observation.images":
                 batch[k] = torch.cat(
                     [
@@ -368,16 +368,16 @@ class DOTPolicy(PreTrainedPolicy):
                 if k != "observation.images":
                     batch[k] += (torch.rand_like(batch[k]) * 2 - 1) * self.state_noise
 
-        print("BATCH INFORMATION 2")
-        print(list(batch.keys()))
-        print(batch["action"].shape)
-        print(batch["action"][0])
-        print(batch["observation.state"].shape)
-        print(batch["observation.state"][0])
+        #print("BATCH INFORMATION 2")
+        #print(list(batch.keys()))
+        #print(batch["action"].shape)
+        #print(batch["action"][0])
+        #print(batch["observation.state"].shape)
+        #print(batch["observation.state"][0])
         actions_hat = self.model(batch)
-        print("ACTIONS HAT OF THE MODEL")
-        print(actions_hat.shape)
-        print(actions_hat[0])
+        #print("ACTIONS HAT OF THE MODEL")
+        #print(actions_hat.shape)
+        #print(actions_hat[0])
 
         """
         # TODO: @Tristan, for debugging
@@ -393,23 +393,23 @@ class DOTPolicy(PreTrainedPolicy):
             print("Action Prediction:", action_pred)
         """
 
-        print("BATCH ACTION")
-        print(batch["action"].shape)
-        print(batch["action"][0])
+        #print("BATCH ACTION")
+        #print(batch["action"].shape)
+        #print(batch["action"][0])
 
         loss = nn.functional.l1_loss(batch["action"], actions_hat, reduction="none")
         rev_padding = (~batch["action_is_pad"]).unsqueeze(-1)
 
-        print("REV PADDING")
-        print(rev_padding)
-        print("LOSS WEIGHTS")
-        print(self.loss_weights)
+        #print("REV PADDING")
+        #print(rev_padding)
+        #print("LOSS WEIGHTS")
+        #print(self.loss_weights)
 
         # Apply padding, weights and decay to the loss
         loss = (loss * rev_padding * self.loss_weights).mean()
 
-        print("LOSS:")
-        print(loss.item())
+        #print("LOSS:")
+        #print(loss.item())
 
         loss_dict = {"loss": loss.item()}
 
@@ -417,7 +417,7 @@ class DOTPolicy(PreTrainedPolicy):
         self.state_noise *= self.config.noise_decay
         self.crop_scale = 1 - (1 - self.crop_scale) * self.config.noise_decay
 
-        print("==============================================")
+        #print("==============================================")
         return loss, loss_dict
 
     @classmethod
