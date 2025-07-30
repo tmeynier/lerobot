@@ -318,6 +318,11 @@ class DOTPolicy(PreTrainedPolicy):
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, dict]:
         print("==============================================")
         print("BATCH INFORMATION")
+        print(f"CURRENT INDEX: {batch['index']}")
+        print(f"CURRENT EPISODE INDEX: {batch['episode_index']}")
+        print(f"CURRENT FRAME INDEX: {batch['frame_index']}")
+        print(f"CURRENT TASK INDEX: {batch['task_index']}")
+
         print(list(batch.keys()))
         print(batch["action"].shape)
         print(batch["action"][0])
