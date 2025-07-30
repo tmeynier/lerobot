@@ -111,20 +111,20 @@ class RuleBasedController(AutoController):
         agent_pos = np.array(obs["agent_pos"], dtype=np.float32)
 
         # Step 2: Add Gaussian noise
-        noise_std_pos = 0.01
-        noisy_agent_pos = agent_pos + np.random.normal(0, noise_std_pos, size=agent_pos.shape)
+        #noise_std_pos = 0.01
+        #noisy_agent_pos = agent_pos + np.random.normal(0, noise_std_pos, size=agent_pos.shape)
 
         # Step 3: Clip to [-1, 1]
-        noisy_agent_pos = np.clip(noisy_agent_pos, -1.0, 1.0)
+        #noisy_agent_pos = np.clip(noisy_agent_pos, -1.0, 1.0)
 
         # Process images
         gripper_cam = obs["pixels"][:, :, :3]
         top_view = obs["pixels"][:, :, 3:]
 
-        noise_std_img = 10.0
-        noisy_gripper_cam = np.clip(gripper_cam + np.random.normal(0, noise_std_img, gripper_cam.shape), 0, 255).astype(
-            np.uint8)
-        noisy_top_view = np.clip(top_view + np.random.normal(0, noise_std_img, top_view.shape), 0, 255).astype(np.uint8)
+        #noise_std_img = 10.0
+        #noisy_gripper_cam = np.clip(gripper_cam + np.random.normal(0, noise_std_img, gripper_cam.shape), 0, 255).astype(
+        #    np.uint8)
+        #noisy_top_view = np.clip(top_view + np.random.normal(0, noise_std_img, top_view.shape), 0, 255).astype(np.uint8)
 
         """
         bucket_pos = np.array(obs["bucket_pos"], dtype=np.float32)
@@ -145,7 +145,6 @@ class RuleBasedController(AutoController):
             "gripper_cam": noisy_gripper_cam,
             "top_view": noisy_top_view
         }
-        """
 
         return {
             "z_slide_1": noisy_agent_pos[0],
@@ -155,6 +154,17 @@ class RuleBasedController(AutoController):
             "slide_gripper_finger_0": noisy_agent_pos[4],
             "gripper_cam": noisy_gripper_cam,
             "top_view": noisy_top_view
+        }
+        """
+
+        return {
+            "z_slide_1": agent_pos[0],
+            "x_slide": agent_pos[1],
+            "y_slide": agent_pos[2],
+            "rotate_arm_1": agent_pos[3],
+            "slide_gripper_finger_0": agent_pos[4],
+            "gripper_cam": gripper_cam,
+            "top_view": top_view
         }
 
     def get_action(self):
